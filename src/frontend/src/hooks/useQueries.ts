@@ -70,6 +70,19 @@ export function useUserProgress() {
   });
 }
 
+export function useUserRole() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  return useQuery<string>({
+    queryKey: ["userRole", identity?.getPrincipal().toString()],
+    queryFn: async () => {
+      if (!actor) return "guest";
+      return actor.getCallerUserRole();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
 export function useSubmitAnswer() {
   const { actor } = useActor();
   return useMutation({
@@ -111,6 +124,20 @@ export function useMarkTopicStarted() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["progress"] });
+    },
+  });
+}
+
+export function useSeedBackend() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Not connected");
+      return actor.seedBackend();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
     },
   });
 }

@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -9,464 +8,364 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Clock, RotateCcw, Trophy, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { CheckCircle2, Clock, RotateCcw, XCircle } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
+import type { PracticeQuestion } from "../backend.d";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useAllTopics,
   useQuizQuestions,
   useRecordQuizResult,
 } from "../hooks/useQueries";
 
-const FALLBACK_QUESTIONS = [
-  {
-    id: "a1",
-    topicId: "algebra",
-    question: "Solve: 2x + 4 = 12",
-    options: ["x = 3", "x = 4", "x = 8", "x = 2"],
-    correctOption: BigInt(1),
-    explanation: "2x = 8, so x = 4",
-  },
-  {
-    id: "a2",
-    topicId: "algebra",
-    question: "What is 5² - 3²?",
-    options: ["4", "16", "25", "34"],
-    correctOption: BigInt(1),
-    explanation: "25 - 9 = 16",
-  },
-  {
-    id: "a3",
-    topicId: "algebra",
-    question: "Simplify: 3(x + 4)",
-    options: ["3x + 4", "3x + 12", "x + 12", "12x + 3"],
-    correctOption: BigInt(1),
-    explanation: "Distribute: 3·x + 3·4 = 3x + 12",
-  },
-  {
-    id: "a4",
-    topicId: "algebra",
-    question: "If f(x) = 2x + 1, what is f(3)?",
-    options: ["5", "7", "9", "6"],
-    correctOption: BigInt(1),
-    explanation: "f(3) = 2(3) + 1 = 7",
-  },
-  {
-    id: "a5",
-    topicId: "algebra",
-    question: "Factor: x² + 5x + 6",
-    options: ["(x+2)(x+3)", "(x+1)(x+6)", "(x+6)(x-1)", "(x-2)(x-3)"],
-    correctOption: BigInt(0),
-    explanation: "Find two numbers that multiply to 6 and add to 5: 2 and 3.",
-  },
-  {
-    id: "a6",
-    topicId: "algebra",
-    question: "What is the y-intercept of y = 3x - 2?",
-    options: ["3", "2", "-2", "0"],
-    correctOption: BigInt(2),
-    explanation: "The y-intercept is b in y = mx + b, so -2.",
-  },
-  {
-    id: "a7",
-    topicId: "algebra",
-    question: "Solve the inequality: x - 3 > 5",
-    options: ["x > 2", "x > 8", "x < 8", "x < 2"],
-    correctOption: BigInt(1),
-    explanation: "Add 3 to both sides: x > 8",
-  },
-  {
-    id: "a8",
-    topicId: "algebra",
-    question: "What is the value of (-3)²?",
-    options: ["-9", "9", "-6", "6"],
-    correctOption: BigInt(1),
-    explanation: "(-3)² = (-3)×(-3) = 9",
-  },
-  {
-    id: "a9",
-    topicId: "algebra",
-    question: "Solve: x/4 = 7",
-    options: ["x = 3", "x = 11", "x = 28", "x = 1.75"],
-    correctOption: BigInt(2),
-    explanation: "Multiply both sides by 4: x = 28",
-  },
-  {
-    id: "a10",
-    topicId: "algebra",
-    question: "Which represents a linear function?",
-    options: ["y = x²", "y = 2x + 3", "y = √x", "y = 1/x"],
-    correctOption: BigInt(1),
-    explanation: "y = 2x + 3 is linear (degree 1).",
-  },
-];
+const QUIZ_SIZE = 10;
+const TOTAL_SECONDS = 60 * QUIZ_SIZE;
 
-const TOPIC_OPTIONS = [
-  { id: "algebra", title: "Algebra" },
-  { id: "geometry", title: "Geometry" },
-  { id: "calculus", title: "Calculus" },
-  { id: "statistics", title: "Statistics" },
-  { id: "trigonometry", title: "Trigonometry" },
-  { id: "functions", title: "Functions" },
-];
-
-type QuizState = "setup" | "running" | "finished";
+interface AnswerRecord {
+  questionIdx: number;
+  selected: number;
+  correct: boolean;
+}
 
 export default function QuizPage() {
+  const search = useSearch({ from: "/quiz" }) as { topicId?: string };
+  const navigate = useNavigate();
   const { data: topics } = useAllTopics();
-  const [selectedTopic, setSelectedTopic] = useState("algebra");
-  const [quizState, setQuizState] = useState<QuizState>("setup");
-  const {
-    data: fetchedQuestions,
-    isLoading,
-    refetch,
-  } = useQuizQuestions(
-    quizState === "running" || quizState === "finished" ? selectedTopic : "",
-  );
-  const recordResult = useRecordQuizResult();
+  const topicId = search.topicId || "";
+  const { data: allQuestions, isLoading } = useQuizQuestions(topicId);
+  const recordQuizResult = useRecordQuizResult();
+  const { identity } = useInternetIdentity();
 
-  const questions = (
-    fetchedQuestions && fetchedQuestions.length > 0
-      ? fetchedQuestions
-      : FALLBACK_QUESTIONS
-  ).slice(0, 10) as typeof FALLBACK_QUESTIONS;
-
+  const [quiz, setQuiz] = useState<PracticeQuestion[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<
-    Array<{ selected: number; correct: boolean }>
-  >([]);
-  const [timeLeft, setTimeLeft] = useState(60);
-  const [isAnswered, setIsAnswered] = useState(false);
-
-  const endQuiz = useCallback(() => {
-    setQuizState("finished");
-    const score = answers.filter((a) => a.correct).length;
-    recordResult.mutate({
-      topicId: selectedTopic,
-      score,
-      total: questions.length,
-    });
-  }, [answers, selectedTopic, questions.length, recordResult]);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [answers, setAnswers] = useState<AnswerRecord[]>([]);
+  const [timeLeft, setTimeLeft] = useState(TOTAL_SECONDS);
+  const [quizDone, setQuizDone] = useState(false);
+  const [quizStarted, setQuizStarted] = useState(false);
 
   useEffect(() => {
-    if (quizState !== "running" || isAnswered) return;
-    if (timeLeft <= 0) {
-      setAnswers((prev) => [...prev, { selected: -1, correct: false }]);
-      if (currentIdx < questions.length - 1) {
-        setCurrentIdx((i) => i + 1);
-        setSelectedOption(null);
-        setIsAnswered(false);
-        setTimeLeft(60);
-      } else {
-        endQuiz();
+    if (allQuestions && allQuestions.length > 0) {
+      const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+      setQuiz(shuffled.slice(0, Math.min(QUIZ_SIZE, shuffled.length)));
+    }
+  }, [allQuestions]);
+
+  const finishQuiz = useCallback(
+    (finalAnswers: AnswerRecord[]) => {
+      setQuizDone(true);
+      const score = finalAnswers.filter((a) => a.correct).length;
+      if (identity && topicId) {
+        recordQuizResult.mutate({ topicId, score, total: finalAnswers.length });
       }
+    },
+    [identity, topicId, recordQuizResult],
+  );
+
+  useEffect(() => {
+    if (!quizStarted || quizDone) return;
+    if (timeLeft <= 0) {
+      finishQuiz(answers);
       return;
     }
-    const timer = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [timeLeft, quizState, isAnswered, currentIdx, questions.length, endQuiz]);
+    const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [quizStarted, quizDone, timeLeft, answers, finishQuiz]);
 
-  const handleSelect = (optionIdx: number) => {
-    if (isAnswered) return;
-    setSelectedOption(optionIdx);
-    setIsAnswered(true);
-    const correct = optionIdx === Number(questions[currentIdx].correctOption);
-    setAnswers((prev) => [...prev, { selected: optionIdx, correct }]);
-  };
-
-  const handleNext = () => {
-    if (currentIdx < questions.length - 1) {
-      setCurrentIdx((i) => i + 1);
-      setSelectedOption(null);
-      setIsAnswered(false);
-      setTimeLeft(60);
-    } else {
-      endQuiz();
-    }
-  };
-
-  const startQuiz = () => {
+  function startQuiz() {
     setCurrentIdx(0);
-    setSelectedOption(null);
+    setSelected(null);
     setAnswers([]);
-    setIsAnswered(false);
-    setTimeLeft(60);
-    setQuizState("running");
-    refetch();
-  };
+    setTimeLeft(TOTAL_SECONDS);
+    setQuizDone(false);
+    setQuizStarted(true);
+  }
 
-  const resetQuiz = () => {
-    setQuizState("setup");
-    setCurrentIdx(0);
-    setSelectedOption(null);
-    setAnswers([]);
-    setIsAnswered(false);
-    setTimeLeft(60);
-  };
+  function handleSelect(optionIdx: number) {
+    if (selected !== null) return;
+    setSelected(optionIdx);
+    const correct = Number(quiz[currentIdx].correctOption) === optionIdx;
+    const newAnswers = [
+      ...answers,
+      { questionIdx: currentIdx, selected: optionIdx, correct },
+    ];
+    setAnswers(newAnswers);
 
+    setTimeout(() => {
+      if (currentIdx + 1 >= quiz.length) {
+        finishQuiz(newAnswers);
+      } else {
+        setCurrentIdx((i) => i + 1);
+        setSelected(null);
+      }
+    }, 1000);
+  }
+
+  const currentQuestion = quiz[currentIdx];
   const score = answers.filter((a) => a.correct).length;
-  const topicList = topics && topics.length > 0 ? topics : TOPIC_OPTIONS;
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+  const timerWarning = timeLeft <= 60;
 
   return (
-    <main className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-extrabold text-foreground">Quiz Mode</h1>
-        <p className="text-muted-foreground mt-1">
-          10 questions, 60 seconds each. Test your knowledge!
-        </p>
-      </div>
+    <main className="container mx-auto px-4 py-10 max-w-2xl">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+            Quiz
+          </h1>
+          {quizStarted && !quizDone && (
+            <div
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-lg border font-mono text-sm font-semibold",
+                timerWarning
+                  ? "border-orange-500/40 bg-orange-500/10 text-orange-400"
+                  : "border-border bg-secondary text-foreground",
+              )}
+              data-ocid="quiz.timer"
+            >
+              <Clock className="w-4 h-4" />
+              {String(minutes).padStart(2, "0")}:
+              {String(seconds).padStart(2, "0")}
+            </div>
+          )}
+        </div>
 
-      <AnimatePresence mode="wait">
-        {/* Setup */}
-        {quizState === "setup" && (
-          <motion.div
-            key="setup"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="bg-white rounded-2xl border border-border shadow-card p-8 text-center"
-            data-ocid="quiz.panel"
+        <div className="mb-8">
+          <Select
+            value={topicId}
+            onValueChange={(v) => {
+              navigate({ to: "/quiz", search: { topicId: v } });
+              setQuizStarted(false);
+              setQuizDone(false);
+            }}
           >
-            <div className="w-16 h-16 rounded-2xl bg-navy flex items-center justify-center mx-auto mb-4">
-              <Trophy className="w-8 h-8 text-primary" />
-            </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">
-              Ready to Test Yourself?
-            </h2>
-            <p className="text-muted-foreground mb-6">
-              Choose a topic and start your timed quiz.
+            <SelectTrigger className="w-full md:w-72" data-ocid="quiz.select">
+              <SelectValue placeholder="Select a topic" />
+            </SelectTrigger>
+            <SelectContent>
+              {topics?.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.icon} {t.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {!topicId ? (
+          <div className="text-center py-20" data-ocid="quiz.empty_state">
+            <p className="text-muted-foreground text-lg">
+              Select a topic to start the quiz.
             </p>
-
-            <div className="max-w-xs mx-auto mb-6">
-              <Select value={selectedTopic} onValueChange={setSelectedTopic}>
-                <SelectTrigger data-ocid="quiz.select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {topicList.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex justify-center gap-6 text-sm text-muted-foreground mb-8">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4" /> 60s per question
-              </div>
-              <div className="flex items-center gap-2">
-                <Trophy className="w-4 h-4" /> 10 questions
-              </div>
-            </div>
-
+          </div>
+        ) : isLoading ? (
+          <div data-ocid="quiz.loading_state">
+            <Skeleton className="h-64 rounded-2xl" />
+          </div>
+        ) : !quizStarted ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-16 rounded-2xl border border-border bg-card"
+          >
+            <div className="text-5xl mb-4">📝</div>
+            <h2 className="font-display text-2xl font-bold text-foreground mb-2">
+              Ready to test yourself?
+            </h2>
+            <p className="text-muted-foreground mb-2">
+              {Math.min(QUIZ_SIZE, quiz.length)} questions · {QUIZ_SIZE} minute
+              total timer
+            </p>
+            <p className="text-sm text-muted-foreground mb-8">
+              Questions advance automatically after each answer.
+            </p>
             <Button
               size="lg"
-              className="rounded-full px-10"
               onClick={startQuiz}
-              data-ocid="quiz.primary_button"
+              className="gap-2"
+              data-ocid="quiz.start_button"
             >
-              Launch Quiz
+              Start Quiz
             </Button>
           </motion.div>
-        )}
-
-        {/* Running */}
-        {quizState === "running" && (
+        ) : quizDone ? (
           <motion.div
-            key="running"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            {isLoading ? (
-              <Skeleton
-                className="h-80 rounded-2xl"
-                data-ocid="quiz.loading_state"
-              />
-            ) : (
-              <>
-                {/* Timer + Progress bar */}
-                <div className="bg-white rounded-xl border border-border shadow-xs p-4 mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">
-                      Question {currentIdx + 1}/{questions.length}
-                    </span>
-                    <div
-                      className={`flex items-center gap-1 text-sm font-bold ${timeLeft <= 10 ? "text-red-500" : "text-foreground"}`}
-                    >
-                      <Clock className="w-4 h-4" /> {timeLeft}s
-                    </div>
-                  </div>
-                  <Progress value={(timeLeft / 60) * 100} className="h-2" />
-                </div>
-
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentIdx}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.25 }}
-                    className="bg-white rounded-2xl border border-border shadow-card p-6 mb-4"
-                    data-ocid="quiz.card"
-                  >
-                    <Badge className="bg-primary/10 text-primary border-0 capitalize mb-4">
-                      {selectedTopic}
-                    </Badge>
-                    <p className="text-lg font-semibold text-foreground mb-6">
-                      {questions[currentIdx]?.question}
-                    </p>
-                    <div className="space-y-3">
-                      {questions[currentIdx]?.options.map((opt, i) => {
-                        let cls =
-                          "border-border bg-white text-foreground hover:bg-accent";
-                        if (isAnswered) {
-                          if (i === Number(questions[currentIdx].correctOption))
-                            cls = "border-green-400 bg-green-50 text-green-700";
-                          else if (i === selectedOption)
-                            cls = "border-red-400 bg-red-50 text-red-700";
-                          else
-                            cls =
-                              "border-border bg-white text-muted-foreground opacity-50";
-                        }
-                        return (
-                          <button
-                            key={opt}
-                            type="button"
-                            className={`w-full flex items-center gap-3 p-4 rounded-xl border text-sm text-left transition-all ${cls}`}
-                            onClick={() => handleSelect(i)}
-                            disabled={isAnswered}
-                            data-ocid={`quiz.toggle.${i + 1}`}
-                          >
-                            <span className="w-6 h-6 rounded-full border flex items-center justify-center text-xs font-bold shrink-0">
-                              {String.fromCharCode(65 + i)}
-                            </span>
-                            {opt}
-                            {isAnswered &&
-                              i ===
-                                Number(questions[currentIdx].correctOption) && (
-                                <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto" />
-                              )}
-                            {isAnswered &&
-                              i === selectedOption &&
-                              i !==
-                                Number(questions[currentIdx].correctOption) && (
-                                <XCircle className="w-4 h-4 text-red-500 ml-auto" />
-                              )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
-
-                {isAnswered && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-4"
-                  >
-                    <div
-                      className={`rounded-xl p-3 mb-4 text-sm ${answers[answers.length - 1]?.correct ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-700"}`}
-                      data-ocid={
-                        answers[answers.length - 1]?.correct
-                          ? "quiz.success_state"
-                          : "quiz.error_state"
-                      }
-                    >
-                      {answers[answers.length - 1]?.correct
-                        ? "✓ Correct!"
-                        : "✗ Incorrect"}{" "}
-                      — {questions[currentIdx]?.explanation}
-                    </div>
-                    <Button
-                      className="w-full rounded-full"
-                      onClick={handleNext}
-                      data-ocid="quiz.primary_button"
-                    >
-                      {currentIdx < questions.length - 1
-                        ? "Next Question"
-                        : "See Results"}
-                    </Button>
-                  </motion.div>
-                )}
-              </>
-            )}
-          </motion.div>
-        )}
-
-        {/* Finished */}
-        {quizState === "finished" && (
-          <motion.div
-            key="finished"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl border border-border shadow-card p-8"
-            data-ocid="quiz.panel"
+            className="rounded-2xl border border-border bg-card p-6"
+            data-ocid="quiz.success_state"
           >
             <div className="text-center mb-8">
-              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Trophy className="w-10 h-10 text-primary" />
+              <div className="text-5xl mb-3">
+                {score >= quiz.length * 0.8
+                  ? "🏆"
+                  : score >= quiz.length * 0.5
+                    ? "👍"
+                    : "📚"}
               </div>
-              <h2 className="text-2xl font-extrabold text-foreground mb-1">
-                Quiz Complete!
+              <h2 className="font-display text-3xl font-bold text-foreground mb-1">
+                {score} / {quiz.length}
               </h2>
-              <p className="text-muted-foreground capitalize">
-                {selectedTopic} · {questions.length} Questions
+              <p className="text-muted-foreground">
+                {score >= quiz.length * 0.8
+                  ? "Outstanding!"
+                  : score >= quiz.length * 0.5
+                    ? "Good effort!"
+                    : "Keep practicing!"}
               </p>
-              <div className="mt-4 text-5xl font-extrabold text-primary">
-                {score}
-                <span className="text-2xl text-muted-foreground">
-                  /{questions.length}
+            </div>
+
+            <div className="flex flex-col gap-4 mb-8">
+              {quiz.map((q, i) => {
+                const ans = answers[i];
+                const correct = ans?.correct;
+                const correctOpt = Number(q.correctOption);
+                return (
+                  <div
+                    key={q.id}
+                    className={cn(
+                      "rounded-xl border p-4",
+                      correct
+                        ? "border-green-500/30 bg-green-500/5"
+                        : "border-red-500/30 bg-red-500/5",
+                    )}
+                    data-ocid={`quiz.review.item.${i + 1}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      {correct ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground text-sm font-medium mb-1">
+                          {q.question}
+                        </p>
+                        {!correct && ans !== undefined && (
+                          <p className="text-red-400 text-xs mb-0.5">
+                            Your answer: {q.options[ans.selected]}
+                          </p>
+                        )}
+                        <p className="text-green-400 text-xs mb-2">
+                          Correct: {q.options[correctOpt]}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          {q.explanation}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Button
+                onClick={startQuiz}
+                className="gap-2"
+                data-ocid="quiz.restart_button"
+              >
+                <RotateCcw className="w-4 h-4" /> Retry Quiz
+              </Button>
+              <Link to="/practice" search={{ topicId }}>
+                <Button
+                  variant="outline"
+                  className="gap-2 border-border"
+                  data-ocid="quiz.practice_button"
+                >
+                  More Practice
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
+        ) : currentQuestion ? (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentIdx}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.25 }}
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-500"
+                    style={{ width: `${(currentIdx / quiz.length) * 100}%` }}
+                  />
+                </div>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {currentIdx + 1}/{quiz.length}
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                {Math.round((score / questions.length) * 100)}% accuracy
-              </p>
-            </div>
 
-            {/* Review */}
-            <div className="space-y-3 mb-6">
-              <h3 className="font-bold text-foreground">Review Answers</h3>
-              {answers.map((ans, i) => (
-                <div
-                  key={questions[i]?.id ?? `ans-${i}`}
-                  className={`flex items-start gap-3 p-3 rounded-xl text-sm ${ans.correct ? "bg-green-50" : "bg-red-50"}`}
-                  data-ocid={`quiz.item.${i + 1}`}
-                >
-                  {ans.correct ? (
-                    <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-                  )}
-                  <div>
-                    <p
-                      className={`font-medium ${ans.correct ? "text-green-700" : "text-red-700"}`}
+              <div className="rounded-2xl border border-border bg-card p-6 mb-5">
+                <p className="text-sm text-muted-foreground font-medium mb-3">
+                  Question {currentIdx + 1}
+                </p>
+                <p className="text-foreground text-lg leading-relaxed">
+                  {currentQuestion.question}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                {currentQuestion.options.map((opt, i) => {
+                  const isRight = Number(currentQuestion.correctOption) === i;
+                  let cls =
+                    "border-border text-foreground hover:border-primary/40 hover:bg-secondary cursor-pointer";
+                  if (selected !== null) {
+                    if (isRight)
+                      cls =
+                        "border-green-500/50 bg-green-500/10 text-green-400 cursor-default";
+                    else if (selected === i)
+                      cls =
+                        "border-red-500/50 bg-red-500/10 text-red-400 cursor-default";
+                    else
+                      cls =
+                        "border-border text-muted-foreground opacity-50 cursor-default";
+                  }
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => handleSelect(i)}
+                      disabled={selected !== null}
+                      className={cn(
+                        "w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 flex items-center justify-between gap-3",
+                        cls,
+                      )}
+                      data-ocid={`quiz.option.${i + 1}`}
                     >
-                      {questions[i]?.question}
-                    </p>
-                    <p className="text-muted-foreground text-xs mt-0.5">
-                      {questions[i]?.explanation}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <Button
-              className="w-full rounded-full"
-              variant="outline"
-              onClick={resetQuiz}
-              data-ocid="quiz.secondary_button"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" /> Try Again
-            </Button>
-          </motion.div>
+                      <span>{opt}</span>
+                      {selected !== null && isRight && (
+                        <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+                      )}
+                      {selected !== null && selected === i && !isRight && (
+                        <XCircle className="w-5 h-5 text-red-400 shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        ) : (
+          <div
+            className="text-center py-16 text-muted-foreground"
+            data-ocid="quiz.empty_state"
+          >
+            No quiz questions available for this topic.
+          </div>
         )}
-      </AnimatePresence>
+      </motion.div>
     </main>
   );
 }

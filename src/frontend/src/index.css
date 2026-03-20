@@ -1,5 +1,13 @@
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");
 
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/assets/fonts/BricolageGrotesque.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,44 +15,48 @@
 @layer base {
   :root {
     --radius: 0.75rem;
-    /* Page bg: EAF6F8 light aqua */
-    --background: 0.96 0.025 200;
-    --foreground: 0.16 0.045 240;
-    /* Card: white */
-    --card: 1 0 0;
-    --card-foreground: 0.16 0.045 240;
-    --popover: 1 0 0;
-    --popover-foreground: 0.16 0.045 240;
-    /* Primary: orange F47B2A */
-    --primary: 0.7 0.175 50;
-    --primary-foreground: 1 0 0;
-    /* Secondary: light bg */
-    --secondary: 0.94 0.02 200;
-    --secondary-foreground: 0.16 0.045 240;
-    --muted: 0.94 0.015 200;
-    --muted-foreground: 0.5 0.025 240;
-    --accent: 0.93 0.02 200;
-    --accent-foreground: 0.16 0.045 240;
+
+    --background: 0.13 0.025 260;
+    --foreground: 0.95 0.01 250;
+
+    --card: 0.17 0.022 255;
+    --card-foreground: 0.95 0.01 250;
+    --popover: 0.17 0.022 255;
+    --popover-foreground: 0.95 0.01 250;
+
+    --primary: 0.62 0.22 265;
+    --primary-foreground: 0.98 0.005 250;
+
+    --secondary: 0.22 0.025 255;
+    --secondary-foreground: 0.88 0.01 250;
+
+    --muted: 0.2 0.02 255;
+    --muted-foreground: 0.6 0.02 250;
+
+    --accent: 0.25 0.04 265;
+    --accent-foreground: 0.9 0.01 250;
+
     --destructive: 0.577 0.245 27.325;
     --destructive-foreground: 1 0 0;
-    --border: 0.9 0.02 200;
-    --input: 0.9 0.02 200;
-    --ring: 0.7 0.175 50;
-    /* Navy footer: 0B1E33 */
-    --navy: 0.18 0.045 240;
-    --chart-1: 0.7 0.175 50;
-    --chart-2: 0.65 0.13 170;
-    --chart-3: 0.6 0.14 240;
-    --chart-4: 0.65 0.13 145;
-    --chart-5: 0.65 0.12 290;
-    --sidebar: 0.96 0.025 200;
-    --sidebar-foreground: 0.16 0.045 240;
-    --sidebar-primary: 0.7 0.175 50;
-    --sidebar-primary-foreground: 1 0 0;
-    --sidebar-accent: 0.94 0.02 200;
-    --sidebar-accent-foreground: 0.16 0.045 240;
-    --sidebar-border: 0.9 0.02 200;
-    --sidebar-ring: 0.7 0.175 50;
+
+    --border: 0.25 0.025 260;
+    --input: 0.22 0.025 260;
+    --ring: 0.62 0.22 265;
+
+    --chart-1: 0.65 0.22 265;
+    --chart-2: 0.65 0.2 145;
+    --chart-3: 0.65 0.21 35;
+    --chart-4: 0.65 0.2 200;
+    --chart-5: 0.65 0.21 320;
+
+    --sidebar: 0.15 0.025 260;
+    --sidebar-foreground: 0.95 0.01 250;
+    --sidebar-primary: 0.62 0.22 265;
+    --sidebar-primary-foreground: 0.98 0.005 250;
+    --sidebar-accent: 0.22 0.025 255;
+    --sidebar-accent-foreground: 0.88 0.01 250;
+    --sidebar-border: 0.25 0.025 260;
+    --sidebar-ring: 0.62 0.22 265;
   }
 
   * {
@@ -52,8 +64,8 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
-    font-family: "Plus Jakarta Sans", sans-serif;
+    @apply bg-background text-foreground;
+    font-family: "Plus Jakarta Sans", "Bricolage Grotesque", sans-serif;
   }
 
   h1,
@@ -62,19 +74,19 @@
   h4,
   h5,
   h6 {
-    font-family: "Plus Jakarta Sans", sans-serif;
+    font-family: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
     font-weight: 700;
   }
 }
 
 @layer utilities {
-  .text-navy {
-    color: oklch(var(--navy));
+  .font-display {
+    font-family: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
   }
-  .bg-navy {
-    background-color: oklch(var(--navy));
-  }
-  .text-body {
-    color: oklch(var(--muted-foreground));
+
+  .glass {
+    backdrop-filter: blur(12px);
+    background: oklch(0.17 0.022 255 / 0.85);
+    border: 1px solid oklch(0.3 0.03 260 / 0.5);
   }
 }

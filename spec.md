@@ -1,27 +1,29 @@
 # MathEasy
 
 ## Current State
-New project. No existing features.
+A math learning app with 6 topics (Algebra, Geometry, Calculus, Statistics, Trigonometry, Functions), lessons with examples, practice questions, quiz mode, and progress tracking with Internet Identity login.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Math topics browser covering: Algebra, Geometry, Calculus, Statistics, Trigonometry, Functions
-- Each topic contains lessons with step-by-step explanations and worked examples
-- Practice questions per topic with multiple-choice options and detailed answer explanations
-- Interactive quiz mode with timed sessions, scoring, and results
-- Progress tracking: topics started/completed, questions answered correctly
-- Search topics functionality
-- User authentication so progress is saved per user
+- Nothing new — full rebuild of existing functionality
 
 ### Modify
-- N/A
+- Rebuild frontend and backend from scratch with improved content and UI
+- More practice questions per topic (at least 5 per topic)
+- More lessons per topic
 
 ### Remove
-- N/A
+- Nothing
 
 ## Implementation Plan
-1. Backend: store topics, lessons, questions (with options + answer + explanation). Track user progress (questions answered, scores).
-2. Backend: expose queries for topics list, topic detail (lessons + questions), random practice questions, quiz questions. Mutations for recording answers/progress.
-3. Frontend: Landing/hero page, Topics grid, Topic detail page (lessons + examples), Practice mode (one question at a time with answer reveal), Quiz mode (timed, 10 questions, scored), Progress dashboard.
-4. Auth via authorization component for saving progress per user.
+1. Keep authorization component
+2. Regenerate Motoko backend with richer seed data (more questions and lessons per topic)
+3. Rebuild React frontend with clean, modern UI
+   - Home page with topic overview
+   - Topics listing page
+   - Topic detail with lessons and examples
+   - Practice mode with instant feedback
+   - Quiz mode (10 timed questions)
+   - Progress page (requires login)
+   - Navbar + Footer

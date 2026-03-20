@@ -1,232 +1,261 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  BookOpen,
-  CheckCircle2,
-  LogIn,
-  Target,
-  Trophy,
-  XCircle,
-} from "lucide-react";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Link } from "@tanstack/react-router";
+import { BookOpen, LogIn, Target, Trophy, Zap } from "lucide-react";
 import { motion } from "motion/react";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
-import { useUserProgress } from "../hooks/useQueries";
+import { useAllTopics, useUserProgress } from "../hooks/useQueries";
 
-const SKELETON_STATS = ["sk-stat-1", "sk-stat-2", "sk-stat-3"];
+function formatDate(timestamp: bigint) {
+  const ms = Number(timestamp) / 1_000_000;
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(ms));
+}
 
 export default function ProgressPage() {
-  const { login, loginStatus, identity } = useInternetIdentity();
-  const isLoggedIn = loginStatus === "success" && !!identity;
-  const isLoggingIn = loginStatus === "logging-in";
+  const { identity, login, isLoggingIn } = useInternetIdentity();
   const { data: progress, isLoading } = useUserProgress();
+  const { data: topics } = useAllTopics();
 
-  if (!isLoggedIn) {
+  if (!identity) {
     return (
-      <main className="max-w-md mx-auto px-4 py-24 text-center">
+      <main className="container mx-auto px-4 py-20 max-w-md text-center">
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.4 }}
         >
-          <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-            <Trophy className="w-10 h-10 text-primary" />
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
+            <Trophy className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-extrabold text-foreground mb-3">
+          <h1 className="font-display text-3xl font-bold text-foreground mb-3">
             Track Your Progress
           </h1>
           <p className="text-muted-foreground mb-8">
-            Log in to see your learning history, accuracy stats, and quiz
-            results.
+            Login to save your quiz history, accuracy stats, and see which
+            topics you&apos;ve mastered.
           </p>
           <Button
-            size="lg"
-            className="rounded-full px-10"
             onClick={login}
             disabled={isLoggingIn}
-            data-ocid="progress.primary_button"
+            size="lg"
+            className="gap-2"
+            data-ocid="progress.login_button"
           >
-            <LogIn className="w-4 h-4 mr-2" />
-            {isLoggingIn ? "Logging in…" : "Log In to View Progress"}
+            <LogIn className="w-5 h-5" />
+            {isLoggingIn ? "Logging in..." : "Login to Continue"}
           </Button>
         </motion.div>
       </main>
     );
   }
 
-  if (isLoading || !progress) {
+  if (isLoading) {
     return (
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
-        <Skeleton
-          className="h-10 w-48 mb-8 rounded-xl"
-          data-ocid="progress.loading_state"
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          {SKELETON_STATS.map((k) => (
-            <Skeleton key={k} className="h-28 rounded-2xl" />
+      <main
+        className="container mx-auto px-4 py-10 max-w-3xl"
+        data-ocid="progress.loading_state"
+      >
+        <Skeleton className="h-10 w-48 mb-8" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {["a", "b", "c", "d"].map((k) => (
+            <Skeleton key={k} className="h-24 rounded-2xl" />
           ))}
         </div>
-        <Skeleton className="h-64 rounded-2xl" />
+        <Skeleton className="h-48 rounded-2xl" />
       </main>
     );
   }
 
-  const totalAnswered = Number(progress.questionsAnswered);
-  const totalCorrect = Number(progress.correctAnswers);
+  const questionsAnswered = Number(progress?.questionsAnswered ?? 0);
+  const correctAnswers = Number(progress?.correctAnswers ?? 0);
   const accuracy =
-    totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
-  const topicsStarted = progress.startedTopics.length;
-  const quizHistory = progress.quizHistory;
+    questionsAnswered > 0
+      ? Math.round((correctAnswers / questionsAnswered) * 100)
+      : 0;
+  const startedTopics = progress?.startedTopics ?? [];
+  const quizHistory = progress?.quizHistory ?? [];
+
+  const stats = [
+    {
+      icon: BookOpen,
+      label: "Topics Started",
+      value: startedTopics.length,
+      color: "text-primary",
+    },
+    {
+      icon: Target,
+      label: "Questions Answered",
+      value: questionsAnswered,
+      color: "text-chart-2",
+    },
+    {
+      icon: Zap,
+      label: "Correct Answers",
+      value: correctAnswers,
+      color: "text-chart-3",
+    },
+    {
+      icon: Trophy,
+      label: "Accuracy",
+      value: `${accuracy}%`,
+      color: "text-chart-5",
+    },
+  ];
 
   return (
-    <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
+    <main className="container mx-auto px-4 py-10 max-w-3xl">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
       >
-        <h1 className="text-3xl font-extrabold text-foreground mb-2">
-          My Progress
+        <h1 className="font-display text-4xl font-bold text-foreground mb-2">
+          Your Progress
         </h1>
         <p className="text-muted-foreground mb-8">
-          {identity.getPrincipal().toString().slice(0, 16)}…
+          Track your learning journey across all math topics.
         </p>
 
-        {/* Stats cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-          {[
-            {
-              icon: BookOpen,
-              label: "Topics Started",
-              value: topicsStarted,
-              color: "text-blue-600",
-              bg: "bg-blue-50",
-              key: "topics",
-            },
-            {
-              icon: Target,
-              label: "Questions Answered",
-              value: totalAnswered,
-              color: "text-primary",
-              bg: "bg-orange-50",
-              key: "questions",
-            },
-            {
-              icon: Trophy,
-              label: "Accuracy",
-              value: `${accuracy}%`,
-              color: "text-green-600",
-              bg: "bg-green-50",
-              key: "accuracy",
-            },
-          ].map(({ icon: Icon, label, value, color, bg, key }, i) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+          {stats.map((s, i) => (
             <motion.div
-              key={key}
+              key={s.label}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="bg-white rounded-2xl border border-border shadow-card p-6"
-              data-ocid={`progress.card.${i + 1}`}
+              transition={{ delay: i * 0.07, duration: 0.4 }}
+              className="rounded-2xl border border-border bg-card p-5"
             >
-              <div
-                className={`w-10 h-10 rounded-xl ${bg} ${color} flex items-center justify-center mb-3`}
-              >
-                <Icon className="w-5 h-5" />
-              </div>
-              <div className="text-2xl font-extrabold text-foreground">
-                {value}
-              </div>
-              <div className="text-sm text-muted-foreground mt-1">{label}</div>
+              <s.icon className={`w-5 h-5 mb-3 ${s.color}`} />
+              <p className="font-display font-bold text-2xl text-foreground">
+                {s.value}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
             </motion.div>
           ))}
         </div>
 
-        {/* Accuracy bar */}
-        <div className="bg-white rounded-2xl border border-border shadow-card p-6 mb-6">
-          <h2 className="font-bold text-foreground mb-3">Overall Accuracy</h2>
-          <div className="flex items-center gap-3">
-            <Progress value={accuracy} className="flex-1 h-3" />
-            <span className="text-sm font-bold text-foreground w-12 text-right">
-              {accuracy}%
-            </span>
+        {questionsAnswered > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-6 mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-display font-semibold text-foreground">
+                Overall Accuracy
+              </h2>
+              <Badge variant={accuracy >= 70 ? "default" : "secondary"}>
+                {accuracy}%
+              </Badge>
+            </div>
+            <Progress value={accuracy} className="h-2.5" />
+            <p className="text-xs text-muted-foreground mt-2">
+              {correctAnswers} correct out of {questionsAnswered} answered
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            {totalCorrect} correct out of {totalAnswered} questions answered
-          </p>
-        </div>
+        )}
 
-        {/* Topics started */}
-        {progress.startedTopics.length > 0 && (
-          <div className="bg-white rounded-2xl border border-border shadow-card p-6 mb-6">
-            <h2 className="font-bold text-foreground mb-3">
-              Topics In Progress
+        {startedTopics.length > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-6 mb-8">
+            <h2 className="font-display font-semibold text-foreground mb-4">
+              Topics Explored
             </h2>
             <div className="flex flex-wrap gap-2">
-              {progress.startedTopics.map((t) => (
-                <span
-                  key={t}
-                  className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium capitalize"
-                >
-                  {t}
-                </span>
-              ))}
+              {startedTopics.map((tid) => {
+                const topic = topics?.find((t) => t.id === tid);
+                return (
+                  <Link
+                    key={tid}
+                    to="/topics/$topicId"
+                    params={{ topicId: tid }}
+                  >
+                    <Badge
+                      variant="secondary"
+                      className="gap-1.5 py-1.5 px-3 cursor-pointer hover:bg-accent"
+                    >
+                      {topic ? `${topic.icon} ${topic.title}` : tid}
+                    </Badge>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* Quiz history */}
-        <div className="bg-white rounded-2xl border border-border shadow-card p-6">
-          <h2 className="font-bold text-foreground mb-4">Quiz History</h2>
+        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="p-6 border-b border-border">
+            <h2 className="font-display font-semibold text-foreground">
+              Quiz History
+            </h2>
+          </div>
           {quizHistory.length === 0 ? (
             <div
-              className="text-center py-8 text-muted-foreground"
-              data-ocid="progress.empty_state"
+              className="p-8 text-center"
+              data-ocid="progress.history.empty_state"
             >
-              No quizzes taken yet. Try a quiz to see your history here!
+              <p className="text-muted-foreground">No quizzes completed yet.</p>
+              <Link to="/quiz">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 border-border"
+                  data-ocid="progress.quiz_button"
+                >
+                  Take a Quiz
+                </Button>
+              </Link>
             </div>
           ) : (
-            <div className="space-y-3">
-              {quizHistory.map((quiz, i) => {
-                const pct =
-                  Number(quiz.total) > 0
-                    ? Math.round(
-                        (Number(quiz.score) / Number(quiz.total)) * 100,
-                      )
-                    : 0;
-                const date = new Date(
-                  Number(quiz.timestamp) / 1_000_000,
-                ).toLocaleDateString();
-                return (
-                  <div
-                    key={`${quiz.topicId}-${i}`}
-                    className="flex items-center gap-4 p-3 rounded-xl bg-background"
-                    data-ocid={`progress.item.${i + 1}`}
-                  >
-                    {pct >= 70 ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-red-500 shrink-0" />
-                    )}
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground capitalize">
-                        {quiz.topicId}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{date}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-foreground">
-                        {Number(quiz.score)}/{Number(quiz.total)}
-                      </p>
-                      <p
-                        className={`text-xs font-medium ${pct >= 70 ? "text-green-600" : "text-red-500"}`}
-                      >
-                        {pct}%
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Topic</TableHead>
+                  <TableHead>Score</TableHead>
+                  <TableHead>Percentage</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {quizHistory.map((result, i) => {
+                  const topic = topics?.find((t) => t.id === result.topicId);
+                  const pct = Math.round(
+                    (Number(result.score) / Number(result.total)) * 100,
+                  );
+                  return (
+                    <TableRow
+                      key={`${result.topicId}-${String(result.timestamp)}`}
+                      data-ocid={`progress.history.item.${i + 1}`}
+                    >
+                      <TableCell className="font-medium">
+                        {topic
+                          ? `${topic.icon} ${topic.title}`
+                          : result.topicId}
+                      </TableCell>
+                      <TableCell>
+                        {String(result.score)}/{String(result.total)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={pct >= 70 ? "default" : "secondary"}>
+                          {pct}%
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {formatDate(result.timestamp)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
         </div>
       </motion.div>

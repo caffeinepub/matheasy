@@ -1,350 +1,160 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@tanstack/react-router";
-import {
-  BookOpen,
-  CheckCircle2,
-  ChevronRight,
-  Clock,
-  Target,
-  Trophy,
-  Zap,
-} from "lucide-react";
+import { ArrowRight, BookOpen, Target, Trophy, Zap } from "lucide-react";
 import { motion } from "motion/react";
 import TopicCard from "../components/TopicCard";
 import { useAllTopics } from "../hooks/useQueries";
 
-const FALLBACK_TOPICS = [
+const features = [
   {
-    id: "algebra",
-    title: "Algebra",
-    icon: "∑",
-    color: "orange",
-    description:
-      "Master equations, inequalities, polynomials and algebraic structures.",
+    icon: BookOpen,
+    title: "Structured Lessons",
+    desc: "Step-by-step explanations with worked examples for every concept.",
   },
   {
-    id: "geometry",
-    title: "Geometry",
-    icon: "△",
-    color: "teal",
-    description: "Explore shapes, theorems, coordinates and spatial reasoning.",
+    icon: Target,
+    title: "Practice Questions",
+    desc: "Instant feedback on every answer with detailed solution breakdowns.",
   },
   {
-    id: "calculus",
-    title: "Calculus",
-    icon: "∫",
-    color: "blue",
-    description:
-      "Understand limits, derivatives, integrals and their applications.",
+    icon: Trophy,
+    title: "Quiz Mode",
+    desc: "Timed quizzes to test your knowledge and track your growth.",
   },
   {
-    id: "statistics",
-    title: "Statistics",
-    icon: "📊",
-    color: "green",
-    description:
-      "Analyze data, probability distributions and statistical inference.",
-  },
-  {
-    id: "trigonometry",
-    title: "Trigonometry",
-    icon: "sin",
-    color: "purple",
-    description: "Work with angles, trigonometric functions and identities.",
-  },
-  {
-    id: "functions",
-    title: "Functions",
-    icon: "f(x)",
-    color: "yellow",
-    description:
-      "Study function types, transformations, and function composition.",
+    icon: Zap,
+    title: "All Topics",
+    desc: "Algebra, Geometry, Calculus, Statistics, Trigonometry, and more.",
   },
 ];
 
 export default function HomePage() {
-  const { data: topics } = useAllTopics();
-  const displayTopics = (
-    topics && topics.length > 0 ? topics : FALLBACK_TOPICS
-  ).slice(0, 6);
+  const { data: topics, isLoading } = useAllTopics();
 
   return (
     <main>
-      {/* Hero */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background pointer-events-none" />
+        <div className="absolute top-20 right-20 w-96 h-96 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-10 w-64 h-64 rounded-full bg-chart-2/5 blur-3xl pointer-events-none" />
+
+        <div className="container mx-auto px-4 py-20 md:py-32 relative">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
+            className="max-w-3xl"
           >
-            <Badge className="mb-4 rounded-full bg-primary/10 text-primary border-0 px-3 py-1">
-              🎓 Free for everyone
-            </Badge>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground leading-[1.1] mb-6">
-              Master Mathematics.{" "}
-              <span className="text-primary">Step-by-Step.</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-6">
+              <Zap className="w-3.5 h-3.5" />
+              Learn math at your own pace
+            </div>
+            <h1 className="font-display text-5xl md:text-7xl font-bold text-foreground leading-[1.05] tracking-tight mb-6">
+              Mathematics, <span className="text-primary">finally</span> made
+              easy.
             </h1>
-            <p className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-lg">
-              Learn every math topic with clear explanations, worked examples,
-              and instant feedback. Better than a classroom — at your own pace.
+            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-10 max-w-xl">
+              Comprehensive lessons, worked examples, and practice questions
+              across every major math topic — designed to be clearer than any
+              classroom.
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-4">
               <Link to="/topics">
                 <Button
                   size="lg"
-                  className="rounded-full px-8 text-base font-semibold shadow-lg"
-                  data-ocid="hero.primary_button"
+                  className="gap-2 font-semibold text-base"
+                  data-ocid="home.primary_button"
                 >
-                  Start Free Trial
+                  Explore Topics <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
-              <Link to="/practice">
+              <Link to="/quiz">
                 <Button
-                  size="lg"
                   variant="outline"
-                  className="rounded-full px-8 text-base font-semibold"
-                  data-ocid="hero.secondary_button"
+                  size="lg"
+                  className="gap-2 font-semibold text-base border-border hover:bg-secondary"
+                  data-ocid="home.secondary_button"
                 >
-                  Watch Demo
+                  Take a Quiz
                 </Button>
               </Link>
-            </div>
-
-            {/* Stats */}
-            <div className="mt-10 flex flex-wrap gap-6">
-              {[
-                { icon: BookOpen, label: "Topics Covered", value: "6+" },
-                { icon: Target, label: "Practice Questions", value: "500+" },
-                { icon: Zap, label: "Step Explanations", value: "100%" },
-              ].map(({ icon: Icon, label, value }) => (
-                <div key={label} className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Icon className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-foreground">
-                      {value}
-                    </div>
-                    <div className="text-xs text-muted-foreground">{label}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Hero illustration */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            className="relative flex justify-center"
-          >
-            <div className="relative">
-              <img
-                src="/assets/generated/hero-student-math.dim_600x500.png"
-                alt="Student learning mathematics"
-                className="w-full max-w-lg rounded-3xl shadow-card"
-              />
-              {/* Floating badges */}
-              <div className="absolute -top-4 -left-4 bg-white rounded-2xl shadow-card p-3 flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
-                <span className="text-sm font-semibold text-foreground">
-                  Correct! Great job
-                </span>
-              </div>
-              <div className="absolute -bottom-4 -right-4 bg-white rounded-2xl shadow-card p-3">
-                <div className="text-xs text-muted-foreground mb-1">
-                  Quiz Progress
-                </div>
-                <div className="text-sm font-bold text-foreground mb-1">
-                  8/10 Questions
-                </div>
-                <Progress value={80} className="w-24 h-2" />
-              </div>
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Topics Grid */}
-      <section className="bg-white py-20" id="topics">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="flex items-end justify-between mb-10"
-          >
-            <div>
-              <h2 className="text-3xl font-extrabold text-foreground mb-2">
-                Explore Mathematics Topics
-              </h2>
-              <p className="text-muted-foreground">
-                From basics to advanced — every topic with detailed lessons and
-                practice.
-              </p>
-            </div>
-            <Link to="/topics" className="hidden sm:block">
-              <Button
-                variant="outline"
-                className="rounded-full"
-                data-ocid="topics.secondary_button"
-              >
-                All Topics <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </Link>
-          </motion.div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayTopics.map((topic, i) => (
+      <section className="border-t border-border bg-card/50">
+        <div className="container mx-auto px-4 py-16">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {features.map((f, i) => (
               <motion.div
-                key={topic.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.08 }}
+                key={f.title}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + i * 0.08, duration: 0.4 }}
+                className="flex flex-col gap-3"
               >
-                <TopicCard topic={topic as any} index={i} />
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <f.icon className="w-5 h-5 text-primary" />
+                </div>
+                <h3 className="font-display font-semibold text-foreground">
+                  {f.title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {f.desc}
+                </p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Practice Preview */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl font-extrabold text-foreground mb-2">
-              Practice & Master
+      <section className="container mx-auto px-4 py-16">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="flex items-end justify-between mb-10"
+        >
+          <div>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
+              Explore Topics
             </h2>
             <p className="text-muted-foreground">
-              Interactive questions with instant feedback and detailed
-              solutions.
+              Six comprehensive subject areas to master.
             </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {/* Practice card */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="lg:col-span-3 bg-white rounded-2xl shadow-card p-6"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-lg text-foreground">
-                  Dynamic Practice Questions
-                </h3>
-                <Badge className="bg-primary/10 text-primary border-0">
-                  Algebra
-                </Badge>
-              </div>
-              <div className="bg-background rounded-xl p-4 mb-4">
-                <p className="text-sm font-medium text-foreground mb-3">
-                  Solve for x: 2x + 5 = 13
-                </p>
-                <div className="space-y-2">
-                  {["x = 3", "x = 4", "x = 9", "x = 18"].map((opt, i) => (
-                    <div
-                      key={opt}
-                      className={`flex items-center gap-3 p-3 rounded-lg border text-sm cursor-default ${
-                        i === 1
-                          ? "border-green-400 bg-green-50 text-green-700 font-medium"
-                          : "border-border bg-white text-muted-foreground"
-                      }`}
-                    >
-                      <span className="w-5 h-5 rounded-full border flex items-center justify-center text-xs font-bold shrink-0">
-                        {String.fromCharCode(65 + i)}
-                      </span>
-                      {opt}
-                      {i === 1 && (
-                        <CheckCircle2 className="w-4 h-4 ml-auto text-green-500" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4">
-                <p className="text-sm text-green-700 font-medium">
-                  ✓ Correct! 2x + 5 = 13 → 2x = 8 → x = 4
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Link to="/practice" className="flex-1">
-                  <Button
-                    className="w-full rounded-lg"
-                    data-ocid="practice.primary_button"
-                  >
-                    Next Question
-                  </Button>
-                </Link>
-                <Button variant="outline" className="rounded-lg">
-                  Detailed Solution
-                </Button>
-              </div>
-              <div className="mt-4">
-                <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                  <span>Progress</span>
-                  <span>8 / 15 Questions Completed</span>
-                </div>
-                <Progress value={53} className="h-2" />
-              </div>
-            </motion.div>
-
-            {/* Quiz card */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="lg:col-span-2 bg-navy rounded-2xl shadow-card p-6 text-white flex flex-col"
-            >
-              <h3 className="font-bold text-lg mb-2">Interactive Quiz Mode</h3>
-              <p className="text-sm text-white/60 mb-6">
-                Test your knowledge with timed quizzes. Track your score and
-                review mistakes.
-              </p>
-              <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center">
-                  <Clock className="w-10 h-10 text-primary" />
-                </div>
-                <Link to="/quiz" className="w-full">
-                  <Button
-                    className="w-full rounded-full"
-                    data-ocid="quiz.primary_button"
-                  >
-                    Launch Daily Quiz
-                  </Button>
-                </Link>
-              </div>
-              <div className="mt-6 grid grid-cols-3 gap-3">
-                {[
-                  { icon: Clock, label: "60s", sub: "per question" },
-                  { icon: Target, label: "10", sub: "questions" },
-                  { icon: Trophy, label: "100%", sub: "best score" },
-                ].map(({ icon: Icon, label, sub }) => (
-                  <div key={label} className="text-center">
-                    <Icon className="w-4 h-4 text-white/50 mx-auto mb-1" />
-                    <div className="text-sm font-bold">{label}</div>
-                    <div className="text-xs text-white/50">{sub}</div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
           </div>
-        </div>
+          <Link to="/topics" className="hidden md:block">
+            <Button
+              variant="ghost"
+              className="gap-2 text-primary"
+              data-ocid="home.topics_link"
+            >
+              View all <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </motion.div>
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {["a", "b", "c", "d", "e", "f"].map((k) => (
+              <Skeleton key={k} className="h-48 rounded-2xl" />
+            ))}
+          </div>
+        ) : topics && topics.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {topics.map((topic, i) => (
+              <TopicCard key={topic.id} topic={topic} index={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16" data-ocid="home.empty_state">
+            <p className="text-muted-foreground">
+              No topics found. Content is being loaded.
+            </p>
+          </div>
+        )}
       </section>
     </main>
   );

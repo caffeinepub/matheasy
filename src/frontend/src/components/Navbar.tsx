@@ -1,101 +1,87 @@
 import { Button } from "@/components/ui/button";
-import { Link, useLocation } from "@tanstack/react-router";
-import { Calculator, Menu, X } from "lucide-react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { BookOpen, LogIn, LogOut, Menu, X } from "lucide-react";
+import { motion } from "motion/react";
 import { useState } from "react";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
+const navLinks = [
+  { to: "/topics", label: "Topics" },
+  { to: "/practice", label: "Practice" },
+  { to: "/quiz", label: "Quiz" },
+  { to: "/progress", label: "Progress" },
+];
+
 export default function Navbar() {
+  const { identity, login, clear, isLoggingIn } = useInternetIdentity();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { login, clear, loginStatus, identity } = useInternetIdentity();
-  const location = useLocation();
-
-  const isLoggedIn = loginStatus === "success" && !!identity;
-  const isLoggingIn = loginStatus === "logging-in";
-
-  const navLinks = [
-    { href: "/topics", label: "Topics" },
-    { href: "/practice", label: "Practice" },
-    { href: "/quiz", label: "Quiz Mode" },
-    { href: "/progress", label: "Progress" },
-  ];
+  const routerState = useRouterState();
+  const currentPath = routerState.location.pathname;
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-border shadow-xs">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2" data-ocid="nav.link">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Calculator className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-extrabold text-foreground tracking-tight">
-              Math<span className="text-primary">Flow</span>
-            </span>
-          </Link>
+    <header className="sticky top-0 z-50 glass border-b border-border">
+      <div className="container mx-auto flex items-center justify-between h-16 px-4">
+        <Link
+          to="/"
+          className="flex items-center gap-2 group"
+          data-ocid="nav.link"
+        >
+          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+            <BookOpen className="w-4 h-4 text-primary" />
+          </div>
+          <span className="font-display font-bold text-lg text-foreground">
+            Math<span className="text-primary">Easy</span>
+          </span>
+        </Link>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
+        <nav className="hidden md:flex items-center gap-1">
+          {navLinks.map((link) => {
+            const active = currentPath.startsWith(link.to);
+            return (
               <Link
-                key={link.href}
-                to={link.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === link.href
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                key={link.to}
+                to={link.to}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  active
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
                 data-ocid="nav.link"
               >
                 {link.label}
               </Link>
-            ))}
-          </div>
+            );
+          })}
+        </nav>
 
-          {/* Auth */}
-          <div className="hidden md:flex items-center gap-3">
-            {isLoggedIn ? (
-              <>
-                <span className="text-sm text-muted-foreground">
-                  {identity.getPrincipal().toString().slice(0, 8)}…
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clear}
-                  data-ocid="nav.secondary_button"
-                >
-                  Log out
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={login}
-                  disabled={isLoggingIn}
-                  data-ocid="nav.link"
-                >
-                  {isLoggingIn ? "Logging in…" : "Log in"}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={login}
-                  disabled={isLoggingIn}
-                  className="rounded-full"
-                  data-ocid="nav.primary_button"
-                >
-                  Start Learning
-                </Button>
-              </>
-            )}
-          </div>
-
-          {/* Mobile toggle */}
+        <div className="flex items-center gap-2">
+          {identity ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clear}
+              className="hidden md:flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              data-ocid="nav.logout_button"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={login}
+              disabled={isLoggingIn}
+              className="hidden md:flex items-center gap-2"
+              data-ocid="nav.login_button"
+            >
+              <LogIn className="w-4 h-4" />
+              {isLoggingIn ? "Logging in..." : "Login"}
+            </Button>
+          )}
           <button
             type="button"
-            className="md:hidden p-2 rounded-lg hover:bg-accent"
-            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
+            onClick={() => setMobileOpen((v) => !v)}
             aria-label="Toggle menu"
             data-ocid="nav.toggle"
           >
@@ -106,43 +92,65 @@ export default function Navbar() {
             )}
           </button>
         </div>
+      </div>
 
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="md:hidden py-4 space-y-1 border-t border-border">
-            {navLinks.map((link) => (
+      {mobileOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          className="md:hidden border-t border-border bg-card px-4 py-3 flex flex-col gap-1"
+        >
+          {navLinks.map((link) => {
+            const active = currentPath.startsWith(link.to);
+            return (
               <Link
-                key={link.href}
-                to={link.href}
-                className="block px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                key={link.to}
+                to={link.to}
                 onClick={() => setMobileOpen(false)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  active
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
                 data-ocid="nav.link"
               >
                 {link.label}
               </Link>
-            ))}
-            <div className="pt-2 flex flex-col gap-2 px-1">
-              {isLoggedIn ? (
-                <Button
-                  variant="outline"
-                  onClick={clear}
-                  data-ocid="nav.secondary_button"
-                >
-                  Log out
-                </Button>
-              ) : (
-                <Button
-                  onClick={login}
-                  disabled={isLoggingIn}
-                  data-ocid="nav.primary_button"
-                >
-                  {isLoggingIn ? "Logging in…" : "Start Learning"}
-                </Button>
-              )}
-            </div>
+            );
+          })}
+          <div className="pt-2 border-t border-border mt-1">
+            {identity ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  clear();
+                  setMobileOpen(false);
+                }}
+                className="w-full justify-start gap-2 text-muted-foreground"
+                data-ocid="nav.logout_button"
+              >
+                <LogOut className="w-4 h-4" /> Logout
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={() => {
+                  login();
+                  setMobileOpen(false);
+                }}
+                disabled={isLoggingIn}
+                className="w-full gap-2"
+                data-ocid="nav.login_button"
+              >
+                <LogIn className="w-4 h-4" />
+                {isLoggingIn ? "Logging in..." : "Login"}
+              </Button>
+            )}
           </div>
-        )}
-      </nav>
+        </motion.div>
+      )}
     </header>
   );
 }
